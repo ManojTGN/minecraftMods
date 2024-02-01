@@ -4,8 +4,206 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🤵 ManojTGN • Mods</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme:{
+                extend: {
+                    'animation': {
+                        'text':'text 1s ease infinite',
+                    },
+                    'keyframes': {
+                        'text': {
+                            '0%, 100%': {
+                            'background-size':'200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                            'background-size':'200% 200%',
+                                'background-position': 'right center'
+                            }
+                        },
+                    },
+                    cursor: {
+                        'fancy': 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'48\' viewport=\'0 0 100 100\' style=\'fill:black;font-size:24px;\'><text y=\'50%\'>🍡</text></svg>"), auto',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <script src="https://kit.fontawesome.com/08c3f952c9.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    
+    <style>
+        @font-face {
+            font-family: Pixellari;
+            src: url(/asserts/Pixellari.ttf);
+        }
+        body{font-family: Pixellari;}
+    </style>
 </head>
-<body>
-    HelloWorld
+<body class="m-0 p-0 w-screen h-screen flex items-center sm:justify-center gap-3 overflow-hidden bg-[#121212]">
+
+<div class="sm:h-[1080px] sm:w-[1920px] flex flex-col items-center sm:justify-center gap-3">
+    <canvas id="canvas" class=" absolute -z-10 opacity-0 hover:cursor-fancy"></canvas>
+    <canvas id="oldcanvas" class=" absolute -z-10 opacity-0"></canvas>
+    <canvas id="cursor" class=" absolute -z-10 opacity-0"></canvas>
+
+    <div class="sm:w-[960px] w-5/6 flex gap-2">
+        <span class="text-3xl text-yellow-300 hover:cursor-pointer w-4/6">ManojTGN Minecraft Mods</span>
+        <hr class="w-full my-4 border-solid border-1 border-yellow-300" />
+        <span class="text-3xl my-2 text-yellow-300">*</span>
+    </div>
+
+    <div class="sm:w-[960px] w-5/6 flex sm:flex-row flex-col gap-5 px-10">
+        <p class="text-2xl text-white text-start">
+            Request Your Minecraft Mods <a class="text-yellow-500" href="https://forms.gle/ffdtvncRecSwDVtVA" target="_blank">(Here)</a> ! 
+            Show Your Support By Donating <a class="text-blue-500" href="https://paypal.me/manojtgn" target="_blank">(PayPal)</a> ! 
+        </p>
+    </div>
+
+    <div class="sm:w-[960px] w-5/6 flex gap-2">
+        <span class="text-3xl text-yellow-300 hover:cursor-pointer">Mods</span>
+        <hr class="w-full my-4 border-solid border-1 border-yellow-300" />
+        <span class="text-3xl my-2 text-yellow-300">*</span>
+    </div>
+
+    <div class="sm:w-[960px] flex flex-col gap-2 px-10">
+        <div class="flex items-center justify-center">
+            <div class="flex items-center justify-center rounded-l-lg border-yellow-300 border-t-2 border-b-2 border-l-2">
+                <i class="p-1 px-2 fa-solid fa-magnifying-glass text-yellow-300 text-xl"></i>
+            </div>
+            <input placeholder="Search Mods With [ Name / Keyword / Tags ]" class="w-full h-10 bg-transparent text-white p-4 outline-0 border-yellow-300 border-t-2 border-b-2  text-xl"/>
+            <button class="h-full w-1/6 text-black bg-yellow-300 hover:bg-yellow-400 p-1 rounded-r-lg border-yellow-300 border-t-2 border-b-2 border-r-2">
+                Search <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+        <br/>
+        <!-- <div class="w-full">
+            <p class="text-xl text-yellow-300">
+                <i class="fa-solid fa-thumbtack"></i> Pinned Mods
+            </p>
+        </div> -->
+        <div class="w-full">
+            <div id="modslist" class="flex flex-col gap-2" data-page="0" data-pagelimit="10">
+                <div id="modslistloader" class="flex items-center justify-center">
+                    <i class="text-7xl text-yellow-500 fa-solid fa-circle-notch fa-spin"></i>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="sm:w-[960px] sm:h-auto flex gap-2 w-0 h-0 overflow-hidden">
+        <span class="text-3xl my-2 text-yellow-300">*</span>
+        <hr class="w-full my-4 border-solid border-1 border-yellow-300" />
+        <span class="text-3xl my-2 text-yellow-300">*</span>
+    </div>
+</div>
+<script>
+    ALL_MODS = [];
+    SEARCHED_MODS = [];
+    MinecraftModSheet = null;
+
+    function createMod( mobRowData ){
+        const element = document.createElement('div');
+        element.className = `w-full flex flex-col gap-1 rounded border-2`;
+
+        const title = document.createElement('p');
+        title.className = `text-xl text-yellow-300 p-2`;
+        title.innerHTML = mobRowData[3].v;
+
+        const desc = document.createElement('p');
+        desc.className = `text-white p-2`;
+        desc.innerHTML = mobRowData[4].v;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex`
+
+        const playerWrap = document.createElement('div');
+        playerWrap.className = `m-1 bg-yellow-500 rounded flex items-center justify-start`;
+
+        const playerHead = document.createElement('img');
+        playerHead.draggable = false;
+        playerHead.className = `p-1 w-[40px]`;
+        playerHead.src= `https://render.skinmc.net/3d.php?user=${mobRowData[1].v}&vr=-10&hr0&hrh=25&aa=true&headOnly=true&ratio=50`
+
+        const playerName = document.createElement('p');
+        playerName.innerHTML = mobRowData[1].v;
+        playerName.className = `text-white px-2`;
+
+        const mobStats = document.createElement('p');
+        mobStats.className = `m-1 p-2 rounded`;
+        if(mobRowData[8].v == 'PROGRESS'){
+            mobStats.innerHTML = '<i class="fa-solid fa-spinner"></i>  in progress';
+            mobStats.className += ` bg-neutral-500 text-white`;
+            element.className += ` border-neutral-300`;
+            title.className = title.className.replace('text-yellow-300','text-neutral-500');
+        }else if(mobRowData[8].v == 'DROPPED'){
+            mobStats.innerHTML = '<i class="fa-regular fa-circle-xmark"></i>  dropped';
+            mobStats.className += ` bg-red-500 text-white`;
+            element.className += ` border-red-400`;
+            title.className = title.className.replace('text-yellow-300','text-red-500');
+        }else if(mobRowData[8].v == 'COMPLETE'){
+            mobStats.innerHTML = '<i class="fa-regular fa-square-check"></i>  complete';
+            mobStats.className += ` bg-emerald-500 text-white`;
+            element.className += ` border-yellow-300`;
+        }else{
+            element.className += ` border-yellow-200`;
+        }
+        
+        playerWrap.appendChild(playerHead);
+        playerWrap.appendChild(playerName);
+
+        wrapper.appendChild(playerWrap);
+        wrapper.appendChild(mobStats);
+        if(mobRowData[8].v == 'COMPLETE'){
+            const version = document.createElement('p');
+            version.className = `m-1 p-2 rounded text-white`;
+            version.innerHTML = `v${mobRowData[9].v}`;
+            wrapper.appendChild(version);
+        }
+
+        element.appendChild(title);
+        element.appendChild(desc);
+        element.appendChild(wrapper);
+        
+        return element;
+    }
+
+    function loadMods(){
+        let ModListDoc = document.getElementById("modslist");
+        for(let i = 0; i < ALL_MODS.length; i++){
+            if(ALL_MODS[i].c[7]=='FALSE') continue;
+
+            let mod = createMod(ALL_MODS[i].c);
+            if(mod) ModListDoc.appendChild(mod);
+        }
+        document.getElementById("modslistloader").remove();
+    }
+
+    window.onload = async (event) => {
+        try{
+            const response = await fetch(`https://docs.google.com/spreadsheets/d/11dZCMnxXLfmzAOnkOAXLoPRSzzflWUG3B8NhkeQA_o4/gviz/tq?tqx=out:json&tq&gid=1588354088`);
+            const data  = await response.text();
+
+            MinecraftModSheet = JSON.parse(data.slice(47,-2));
+            if(!(MinecraftModSheet.table.rows[0].c[0].v=='Timestamp')) ALL_MODS = MinecraftModSheet.table.rows;
+        }catch(err){
+            ALL_MODS = null;
+            document.getElementById("modslistloader").innerHTML = `<p class=\'text-red-500\'><i class="text-red-500 fa-solid fa-bomb"></i> Unable To Get ManojTGN\'s Minecraft Mods</p>`;
+        }
+
+        if(ALL_MODS && ALL_MODS.length != 0) loadMods();
+        else if(ALL_MODS && ALL_MODS == 0){
+            document.getElementById("modslistloader").innerHTML = `<p class=\'text-yellow-500\'><i class="text-red-500 fa-solid fa-heart-crack"></i> Currently I Have Nothing To Showcase!</p>`;
+        }
+    };
+</script>
 </body>
 </html>
